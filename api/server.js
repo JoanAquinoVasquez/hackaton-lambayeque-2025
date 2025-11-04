@@ -37,6 +37,12 @@ app.use('/api/partners', partnerRoutes);
 const rewardRoutes = require('./routes/rewardRoutes');
 app.use('/api/rewards', rewardRoutes);
 
+const dishRoutes = require('./routes/dishRoutes');
+app.use('/api/dishes', dishRoutes);
+
+const feedRoutes = require('./routes/feedRoutes');
+app.use('/api/feed', feedRoutes);
+
 // --- Iniciar Servidor ---
 const PORT = process.env.PORT || 5000;
 
