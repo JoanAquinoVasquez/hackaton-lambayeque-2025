@@ -31,6 +31,11 @@ app.use('/api/auth', authRoutes); // Usa las rutas en /api/auth
 const placeRoutes = require('./routes/placeRoutes'); // Importa las rutas de lugares
 app.use('/api/places', placeRoutes); // Usa las rutas en /api/places
 
+const partnerRoutes = require('./routes/partnerRoutes');
+app.use('/api/partners', partnerRoutes);
+
+const rewardRoutes = require('./routes/rewardRoutes');
+app.use('/api/rewards', rewardRoutes);
 
 // --- Iniciar Servidor ---
 const PORT = process.env.PORT || 5000;
