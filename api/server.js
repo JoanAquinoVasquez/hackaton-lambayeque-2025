@@ -22,7 +22,14 @@ app.get('/', (req, res) => {
   res.send('¡API de Hackaton lista!');
 });
 
-// (Aquí pondremos nuestras rutas de /api/users, /api/places, etc.)
+const userRoutes = require('./routes/userRoutes'); // Importa las rutas de usuario
+app.use('/api/users', userRoutes); // Usa las rutas en /api/users
+
+const authRoutes = require('./routes/authRoutes'); // Importa las rutas de auth
+app.use('/api/auth', authRoutes); // Usa las rutas en /api/auth
+
+const placeRoutes = require('./routes/placeRoutes'); // Importa las rutas de lugares
+app.use('/api/places', placeRoutes); // Usa las rutas en /api/places
 
 
 // --- Iniciar Servidor ---
