@@ -43,6 +43,9 @@ app.use('/api/dishes', dishRoutes);
 const feedRoutes = require('./routes/feedRoutes');
 app.use('/api/feed', feedRoutes);
 
+const aiRoutes = require('./routes/aiRoutes');
+app.use('/api/ai', aiRoutes);
+
 // --- Iniciar Servidor ---
 const PORT = process.env.PORT || 5000;
 
