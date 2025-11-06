@@ -5,7 +5,7 @@ const User = require('../models/User'); // Importa el modelo de Usuario
 exports.createPlace = async (req, res) => {
     try {
         // Obtenemos los datos del body
-        const { name, description, category, address, longitude, latitude, tags, photos } = req.body;
+        const { name, description, category, address, longitude, latitude, tags, photos, rating, numReviews } = req.body;
 
         // Creamos el objeto GeoJSON para la ubicación
         const location = {
@@ -20,7 +20,9 @@ exports.createPlace = async (req, res) => {
             address,
             location,
             tags,
-            photos
+            photos,
+            rating,
+            numReviews
         });
 
         const savedPlace = await place.save();

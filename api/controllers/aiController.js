@@ -60,6 +60,7 @@ exports.getAIRecommendation = async (req, res) => {
       6. ¡MUY IMPORTANTE!: Responde en el mismo idioma que la consulta del usuario. Si la consulta está en inglés, responde en inglés. Si es español, responde en español.
       7. NO inventes lugares o platos que no estén en las listas JSON.
       8. Tu respuesta debe ser solo el texto para el usuario, sin preámbulos.
+      9. Obligatoriamente debes dar la dirección del lugar o ubicación aproximada si recomiendas un lugar.
     `;
 
     // 5. LLAMAR A LA IA
