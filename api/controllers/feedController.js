@@ -5,11 +5,17 @@ const Dish = require('../models/Dish');
 // (Los más reseñados o mejor calificados)
 exports.getPopularPlaces = async (req, res) => {
   try {
-    // Buscamos los 10 lugares con mejor rating
-    const topPlaces = await Place.find({})
-                                 .sort({ rating: -1 }) // Ordena por rating (descendente)
-                                 .limit(10) // Trae solo los 10 primeros
-                                 .select('name category rating numReviews photos'); // Solo datos útiles
+    // --- ¡NUEVO! ---
+    // Define un umbral mínimo de reseñas para ser considerado "popular"
+    const minReviews = 10; // Por ejemplo, debe tener más de 5 reseñas
+
+    // Buscamos los 10 lugares que cumplan con el umbral
+    const topPlaces = await Place.find({
+      numReviews: { $gt: minReviews } // <-- ¡FILTRO AÑADIDO!
+    })
+      .sort({ rating: -1, numReviews: -1 }) // Ordena por rating (desc) y luego por nro. de reseñas (desc)
+      .limit(10) // Trae solo los 10 primeros
+      .select('name category rating numReviews photos'); // Solo datos útiles
 
     res.status(200).json(topPlaces);
   } catch (error) {
