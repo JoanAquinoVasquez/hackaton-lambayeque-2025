@@ -9,7 +9,7 @@ router.get('/:id', dishController.getDishById);
 
 // Rutas de "Admin" (idealmente protegidas por un rol de admin)
 router.post('/', dishController.createDish);
-
+router.post('/bulk', dishController.createManyDishes);
 // Ruta de usuario (protegida)
 router.post('/:id/like', protect, dishController.likeDish);
 

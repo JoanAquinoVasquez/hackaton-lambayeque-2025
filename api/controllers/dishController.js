@@ -71,3 +71,26 @@ exports.likeDish = async (req, res) => {
     res.status(500).json({ message: 'Error en el servidor' });
   }
 };
+
+
+// Función para crear VARIOS platos (carga masiva)
+exports.createManyDishes = async (req, res) => {
+  try {
+    // Aquí, req.body DEBE ser un ARREGLO [...] de platos
+    const dishes = req.body;
+
+    if (!Array.isArray(dishes) || dishes.length === 0) {
+      return res.status(400).json({ message: 'El cuerpo de la petición debe ser un arreglo de platos.' });
+    }
+
+    // Mongoose inserta todos los documentos del arreglo
+    const savedDishes = await Dish.insertMany(dishes);
+    
+    res.status(201).json(savedDishes); // Devuelve el arreglo de platos creados
+
+  } catch (error) {
+    console.error(error);
+    // Si hay un error de validación (ej. un plato no tiene 'name'), Mongoose lo reportará aquí
+    res.status(500).json({ message: 'Error en el servidor al crear varios platos', details: error.message });
+  }
+};

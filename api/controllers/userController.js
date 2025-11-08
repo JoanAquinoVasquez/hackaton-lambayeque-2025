@@ -1,5 +1,6 @@
 const User = require('../models/User'); // Importa el modelo
 const jwt = require('jsonwebtoken'); // Importa jsonwebtoken
+const Place = require('../models/Place'); // <-- ¡AÑADE ESTA LÍNEA!
 
 // Función para generar un Token
 const generateToken = (id) => {
@@ -80,4 +81,31 @@ exports.loginUser = async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Error en el servidor' });
     }
+};
+
+
+exports.getProfile = async (req, res) => {
+  try {
+    // 1. El middleware 'protect' ya nos dio req.user
+    const user = req.user;
+
+    // 2. Buscar los lugares que el usuario ha reseñado (visitado)
+    // Buscamos en la colección 'Place' por reseñas que coincidan con el ID de usuario
+    const visitedPlaces = await Place.find({ 'reviews.user': user._id })
+                                     .select('name category photos'); // Traemos datos útiles
+
+    // 3. Devolver el perfil combinado
+    res.status(200).json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      points: user.points,
+      tastes: user.tastes,
+      visitedPlaces: visitedPlaces // Array de lugares recorridos
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error en el servidor' });
+  }
 };

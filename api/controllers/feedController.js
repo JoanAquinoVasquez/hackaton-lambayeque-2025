@@ -7,7 +7,7 @@ exports.getPopularPlaces = async (req, res) => {
   try {
     // --- ¡NUEVO! ---
     // Define un umbral mínimo de reseñas para ser considerado "popular"
-    const minReviews = 10; // Por ejemplo, debe tener más de 5 reseñas
+    const minReviews = 100; // Por ejemplo, debe tener más de 5 reseñas
 
     // Buscamos los 10 lugares que cumplan con el umbral
     const topPlaces = await Place.find({
