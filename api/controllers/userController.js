@@ -114,6 +114,8 @@ exports.getProfile = async (req, res) => {
       email: user.email,
       points: user.points,
       tastes: user.tastes,
+      isTourist: user.isTourist,
+      stayEndDate: user.stayEndDate,
       visitedPlaces: visitedPlaces, // Array de lugares recorridos
     });
   } catch (error) {
