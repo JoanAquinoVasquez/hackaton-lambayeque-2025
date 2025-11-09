@@ -1,6 +1,6 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const Place = require('../models/Place'); // ¡Necesitamos nuestros lugares!
-const Dish = require('../models/Dish');   // ¡Y nuestros platos!
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Place = require("../models/Place"); // ¡Necesitamos nuestros lugares!
+const Dish = require("../models/Dish"); // ¡Y nuestros platos!
 
 // Inicializar el cliente de Google AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -12,33 +12,63 @@ exports.getAIRecommendation = async (req, res) => {
     // 1. OBTENER DATOS DEL USUARIO Y LA CONSULTA
     const { query, lat, lng } = req.body; // Consulta: "quiero comer algo típico", lat/lng de su GPS
     const userTastes = req.user.tastes; // Gustos: ["historia", "playa"]
+    const userEndDate = req.user.stayEndDate;
 
     if (!query || !lat || !lng) {
-      return res.status(400).json({ message: "Faltan datos (query, lat, lng)" });
+      return res
+        .status(400)
+        .json({ message: "Faltan datos (query, lat, lng)" });
     }
 
     // 2. RECUPERAR (Retrieve): Buscar lugares y platos cercanos en NUESTRA DB
     // Buscamos en un radio amplio (ej. 10km)
-    const radiusInMeters = 10 * 1000; 
+    const radiusInMeters = 10 * 1000;
 
     const nearbyPlaces = await Place.find({
       location: {
         $near: {
-          $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-          $maxDistance: radiusInMeters
-        }
-      }
-    }).select('name description category tags rating') // Solo campos relevantes
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)],
+          },
+          $maxDistance: radiusInMeters,
+        },
+      },
+    })
+      .select("name description category tags rating") // Solo campos relevantes
       .limit(20); // Limitar para no saturar a la IA
 
     const nearbyDishes = await Dish.find({}) // Podríamos filtrar por lugares, pero por ahora traemos los populares
-                                  .sort({ likes: -1 })
-                                  .limit(10)
-                                  .select('name description tags');
+      .sort({ likes: -1 })
+      .limit(10)
+      .select("name description tags");
 
     // 3. AUMENTAR (Augment): Convertir nuestros datos a texto/JSON para la IA
     const placesContext = JSON.stringify(nearbyPlaces);
     const dishesContext = JSON.stringify(nearbyDishes);
+
+    // --- ¡NUEVO! Lógica para el itinerario ---
+    let itineraryInfo = "";
+    // Verificamos si el usuario es turista (tiene fecha fin) Y si su consulta pide un itinerario
+    if (
+      userEndDate &&
+      (query.toLowerCase().includes("itinerario") ||
+        query.toLowerCase().includes("plan"))
+    ) {
+      const today = new Date();
+      const endDate = new Date(userEndDate);
+      // Calcular días restantes
+      const diffTime = Math.max(endDate.getTime() - today.getTime(), 0); // Evitar negativos
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      itineraryInfo = `
+        INFORMACIÓN DE ESTADÍA:
+        - El usuario es turista y le quedan ${diffDays} días de estadía (hoy es ${today.toLocaleDateString(
+        "es-ES"
+      )}, se va el ${endDate.toLocaleDateString("es-ES")}).
+        - La consulta pide un "itinerario" o "plan".
+      `;
+    }
 
     // 4. GENERAR (Generate): Crear el prompt
     const prompt = `
@@ -46,10 +76,12 @@ exports.getAIRecommendation = async (req, res) => {
       Tu objetivo es dar una recomendación útil, corta y natural.
       
       CONTEXTO:
-      - El usuario tiene estos gustos: ${userTastes.join(', ')}.
+      - El usuario tiene estos gustos: ${userTastes.join(", ")}.
       - La consulta del usuario es: "${query}"
       - Lugares cercanos disponibles (JSON): ${placesContext}
       - Platos populares disponibles (JSON): ${dishesContext}
+
+      ${itineraryInfo}
 
       TAREA:
       1. Analiza la consulta y los gustos del usuario.
@@ -61,6 +93,11 @@ exports.getAIRecommendation = async (req, res) => {
       7. NO inventes lugares o platos que no estén en las listas JSON.
       8. Tu respuesta debe ser solo el texto para el usuario, sin preámbulos.
       9. Obligatoriamente debes dar la dirección del lugar o ubicación aproximada si recomiendas un lugar.
+      10. ¡¡TAREA ESPECIAL!!: Si la consulta pide un "itinerario" (mira la INFORMACIÓN DE ESTADÍA):
+         - Crea un itinerario sugerido (Día 1, Día 2, etc.) para los días de estadía restantes.
+         - Distribuye los lugares de la lista JSON de forma lógica en ese itinerario (ej. un museo en la mañana, un restaurante para almorzar, una playa para el atardecer).
+         - Si solo le queda 1 día, haz un plan para ese día.
+      11. Si NO pide un itinerario, solo haz una recomendación simple de 1 o 2 lugares/platos.
     `;
 
     // 5. LLAMAR A LA IA
@@ -70,13 +107,12 @@ exports.getAIRecommendation = async (req, res) => {
 
     // 6. DEVOLVER LA RESPUESTA
     res.status(200).json({
-      aiResponse: aiTextResponse // La respuesta de texto amigable
+      aiResponse: aiTextResponse, // La respuesta de texto amigable
       // Opcional: podrías pedirle a la IA que también devuelva IDs
       // para que la app pueda navegar a ese lugar.
     });
-
   } catch (error) {
     console.error("Error en el controlador de IA:", error);
-    res.status(500).json({ message: 'Error en el servidor de IA' });
+    res.status(500).json({ message: "Error en el servidor de IA" });
   }
 };
