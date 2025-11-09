@@ -73,6 +73,18 @@ exports.loginUser = async (req, res) => {
     // 2. Buscar al usuario por email
     const user = await User.findOne({ email });
 
+    // 3. Formatear la fecha 'stayEndDate' si existe
+    let formattedStayEndDate = null;
+
+    if (user.stayEndDate) {
+      // Convertimos la fecha (sea string o Date) a un objeto Date
+      // Luego a string ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
+      // Y cortamos para quedarnos solo con la parte de la fecha (YYYY-MM-DD)
+      formattedStayEndDate = new Date(user.stayEndDate)
+        .toISOString()
+        .split("T")[0];
+    }
+
     // 3. Verificar si el usuario existe Y si la contraseña coincide
     //    Usamos la función que creamos en el modelo: .matchPassword()
     if (user && (await user.matchPassword(password))) {
@@ -84,7 +96,7 @@ exports.loginUser = async (req, res) => {
         points: user.points,
         token: generateToken(user._id),
         isTourist: user.isTourist,
-        stayEndDate: user.stayEndDate,
+        stayEndDate:formattedStayEndDate,
       });
     } else {
       // Damos un mensaje genérico por seguridad
@@ -107,6 +119,17 @@ exports.getProfile = async (req, res) => {
       "name category photos"
     ); // Traemos datos útiles
 
+    // 3. Formatear la fecha 'stayEndDate' si existe
+    let formattedStayEndDate = null;
+
+    if (user.stayEndDate) {
+      // Convertimos la fecha (sea string o Date) a un objeto Date
+      // Luego a string ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
+      // Y cortamos para quedarnos solo con la parte de la fecha (YYYY-MM-DD)
+      formattedStayEndDate = new Date(user.stayEndDate)
+        .toISOString()
+        .split("T")[0];
+    }
     // 3. Devolver el perfil combinado
     res.status(200).json({
       _id: user._id,
@@ -115,7 +138,7 @@ exports.getProfile = async (req, res) => {
       points: user.points,
       tastes: user.tastes,
       isTourist: user.isTourist,
-      stayEndDate: user.stayEndDate,
+      stayEndDate: formattedStayEndDate,
       visitedPlaces: visitedPlaces, // Array de lugares recorridos
     });
   } catch (error) {
