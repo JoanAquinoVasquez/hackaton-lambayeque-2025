@@ -1,17 +1,14 @@
 const axios = require('axios');
 require('dotenv').config(); // <-- ¡Importante!
 
-// --- CONFIGURA ESTO ---
-const API_KEY = process.env.GOOGLE_PLACES_API_KEY; // ¡Asegúrate que esta sea la variable de tu .env!
+const API_KEY = process.env.GOOGLE_PLACES_API_KEY; 
 const TU_API_URL = 'http://localhost:5000/api/places';
-const MAX_PAGES_PER_QUERY = 50; // ¿Cuántas páginas por cada búsqueda? (2 = ~40 lugares por búsqueda)
-// --- FIN DE LA CONFIGURACIÓN ---
+const MAX_PAGES_PER_QUERY = 50; 
 
 const CHICLAYO_LAT = -6.7713;
 const CHICLAYO_LNG = -79.8409;
 let totalAdded = 0;
 
-// --- ¡¡NUEVO ARRAY DE BÚSQUEDAS!! ---
 const QUERIES = [
   'atractivos turisticos en Lambayeque, Chiclayo y Jose Leonardo Ortiz',
   'hoteles en la provincia de Chiclayo, Lambayeque, Jose Leonardo Ortiz',
@@ -26,7 +23,6 @@ const QUERIES = [
 // ---------------------------------
 
 
-// --- 1. FUNCIÓN PARA OBTENER DETALLES (DESCRIPCIÓN) ---
 async function getPlaceDetails(placeId) {
   const fields = 'editorial_summary';
   const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}&language=es`;
@@ -54,12 +50,11 @@ async function fetchFromGoogle(query, pageToken = null) {
   }
 
   try {
-    // Google requiere una pequeña pausa entre peticiones de página
     if (pageToken) {
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
     const response = await axios.get(googleUrl);
-    return response.data; // Devuelve TODO: { results: [], next_page_token: "..." }
+    return response.data; 
   } catch (error) {
     console.error("Error con la API de Google:", error.response?.data || error.message);
     return { results: [], next_page_token: null };
@@ -74,7 +69,6 @@ async function populateOurDB(places) {
 
   for (const place of places) {
 
-    // Lógica de Fotos
     let photosArray = [];
     if (place.photos && place.photos.length > 0) {
       const photoReference = place.photos[0].photo_reference;
@@ -82,11 +76,9 @@ async function populateOurDB(places) {
       photosArray.push(photoUrl);
     }
 
-    // Lógica de Descripción
     const realDescription = await getPlaceDetails(place.place_id);
     const finalDescription = realDescription || `Puntuación de Google: ${place.rating} (${place.user_ratings_total} reseñas). ${place.formatted_address}`;
 
-    // Mapeo de datos
     const newPlace = {
       name: place.name,
       description: finalDescription,
@@ -108,7 +100,6 @@ async function populateOurDB(places) {
       console.log(`+ Se agregó: ${newPlace.name}`);
       count++;
     } catch (error) {
-      // ¡Esto ahora capturará el error "ya existe" de nuestra API!
       console.error(`- Error al agregar ${newPlace.name}:`, error.response?.data?.message || error.message);
     }
   }
@@ -121,7 +112,6 @@ async function populateOurDB(places) {
 async function runSeeder() {
   console.log('Iniciando seeder... Se procesarán múltiples búsquedas.');
 
-  // ¡¡NUEVO!! Bucle para cada tipo de búsqueda
   for (const query of QUERIES) {
     console.log(`\n======================================================`);
     console.log(`Iniciando búsqueda para: "${query}"`);
@@ -130,13 +120,11 @@ async function runSeeder() {
     let currentPage = 1;
     let nextToken = null;
 
-    // Primera llamada (Página 1)
     let data = await fetchFromGoogle(query);
     await populateOurDB(data.results);
     nextToken = data.next_page_token;
     currentPage++;
 
-    // Bucle para las siguientes páginas (si Google nos da un token)
     while (nextToken && currentPage <= MAX_PAGES_PER_QUERY) {
       console.log("--- Esperando 2 segundos para la siguiente página (requisito de Google) ---");
       data = await fetchFromGoogle(query, nextToken);
@@ -149,5 +137,4 @@ async function runSeeder() {
   console.log(`\n¡POBLACIÓN COMPLETA! Se agregaron un total de ${totalAdded} lugares nuevos.`);
 }
 
-// ¡Ejecutar el motor!
 runSeeder();

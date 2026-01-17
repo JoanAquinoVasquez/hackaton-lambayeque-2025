@@ -67,28 +67,20 @@ exports.registerUser = async (req, res) => {
 // --- Controlador de Login ---
 exports.loginUser = async (req, res) => {
   try {
-    // 1. Obtener email y password del body
     const { email, password } = req.body;
 
-    // 2. Buscar al usuario por email
     const user = await User.findOne({ email });
 
-    // 3. Formatear la fecha 'stayEndDate' si existe
     let formattedStayEndDate = null;
 
     if (user.stayEndDate) {
-      // Convertimos la fecha (sea string o Date) a un objeto Date
-      // Luego a string ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
-      // Y cortamos para quedarnos solo con la parte de la fecha (YYYY-MM-DD)
       formattedStayEndDate = new Date(user.stayEndDate)
         .toISOString()
         .split("T")[0];
     }
 
-    // 3. Verificar si el usuario existe Y si la contraseña coincide
-    //    Usamos la función que creamos en el modelo: .matchPassword()
     if (user && (await user.matchPassword(password))) {
-      // 4. Si todo coincide, generar un token y devolverlo
+
       res.json({
         _id: user._id,
         username: user.username,
@@ -99,7 +91,6 @@ exports.loginUser = async (req, res) => {
         stayEndDate:formattedStayEndDate,
       });
     } else {
-      // Damos un mensaje genérico por seguridad
       res.status(401).json({ message: "Correo o contraseña inválidos" });
     }
   } catch (error) {
@@ -110,27 +101,19 @@ exports.loginUser = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
-    // 1. El middleware 'protect' ya nos dio req.user
     const user = req.user;
 
-    // 2. Buscar los lugares que el usuario ha reseñado (visitado)
-    // Buscamos en la colección 'Place' por reseñas que coincidan con el ID de usuario
     const visitedPlaces = await Place.find({ "reviews.user": user._id }).select(
       "name category photos"
-    ); // Traemos datos útiles
+    );
 
-    // 3. Formatear la fecha 'stayEndDate' si existe
     let formattedStayEndDate = null;
 
     if (user.stayEndDate) {
-      // Convertimos la fecha (sea string o Date) a un objeto Date
-      // Luego a string ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
-      // Y cortamos para quedarnos solo con la parte de la fecha (YYYY-MM-DD)
       formattedStayEndDate = new Date(user.stayEndDate)
         .toISOString()
         .split("T")[0];
     }
-    // 3. Devolver el perfil combinado
     res.status(200).json({
       _id: user._id,
       username: user.username,
@@ -139,7 +122,7 @@ exports.getProfile = async (req, res) => {
       tastes: user.tastes,
       isTourist: user.isTourist,
       stayEndDate: formattedStayEndDate,
-      visitedPlaces: visitedPlaces, // Array de lugares recorridos
+      visitedPlaces: visitedPlaces,
     });
   } catch (error) {
     console.error(error);

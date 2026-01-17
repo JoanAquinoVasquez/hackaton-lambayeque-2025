@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const DishSchema = new mongoose.Schema({
-  name: { // Ej: "Arroz con Pato"
+  name: {
     type: String,
     required: true,
     unique: true,
@@ -10,20 +10,19 @@ const DishSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  imageUrl: { // URL de la foto del plato
+  imageUrl: {
     type: String,
     required: false,
   },
-  tags: { // Ej: ["pato", "criollo", "norteño"]
+  tags: {
     type: [String],
     default: [],
   },
-  // Aquí vinculamos los platos a los lugares (muchos a muchos)
   recommendedPlaces: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Place', // Referencia al modelo 'Place'
+    ref: 'Place', 
   }],
-  likes: { // Para el feed de popularidad
+  likes: { 
     type: Number,
     default: 0,
   }

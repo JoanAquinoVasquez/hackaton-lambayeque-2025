@@ -1,24 +1,21 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const Place = require("../models/Place"); // ¡Necesitamos nuestros lugares!
-const Dish = require("../models/Dish"); // ¡Y nuestros platos!
+const Place = require("../models/Place");
+const Dish = require("../models/Dish"); 
 
-// Inicializar el cliente de Google AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-// --- Controlador para la recomendación de IA (¡PROTEGIDO!) ---
 exports.getAIRecommendation = async (req, res) => {
   try {
-    // 1. OBTENER DATOS DEL USUARIO Y LA CONSULTA
-    const { query, lat, lng } = req.body; // Consulta: "quiero comer algo típico", lat/lng de su GPS
-    const userTastes = req.user.tastes; // Gustos: ["historia", "playa"]
+    const { query, lat, lng } = req.body;
+    const userTastes = req.user.tastes;
     const userEndDate = req.user.stayEndDate;
 
     if (!query || !lat || !lng) {
       return res
         .status(400)
         .json({ message: "Faltan datos (query, lat, lng)" });
-    } // 2. RECUPERAR (Retrieve): Buscar lugares y platos cercanos en NUESTRA DB // Buscamos en un radio amplio (ej. 10km)
+    }
 
     const radiusInMeters = 10 * 1000;
 
@@ -33,26 +30,26 @@ exports.getAIRecommendation = async (req, res) => {
         },
       },
     })
-      .select("name description category tags rating") // Solo campos relevantes
-      .limit(20); // Limitar para no saturar a la IA
+      .select("name description category tags rating") 
+      .limit(20); 
 
-    const nearbyDishes = await Dish.find({}) // Podríamos filtrar por lugares, pero por ahora traemos los populares
+    const nearbyDishes = await Dish.find({})
       .sort({ likes: -1 })
       .limit(10)
-      .select("name description tags"); // 3. AUMENTAR (Augment): Convertir nuestros datos a texto/JSON para la IA
+      .select("name description tags");
 
     const placesContext = JSON.stringify(nearbyPlaces);
-    const dishesContext = JSON.stringify(nearbyDishes); // --- ¡NUEVO! Lógica para el itinerario ---
+    const dishesContext = JSON.stringify(nearbyDishes); 
 
-    let itineraryInfo = ""; // Verificamos si el usuario es turista (tiene fecha fin) Y si su consulta pide un itinerario
+    let itineraryInfo = ""; 
     if (
       userEndDate &&
       (query.toLowerCase().includes("itinerario") ||
         query.toLowerCase().includes("plan"))
     ) {
       const today = new Date();
-      const endDate = new Date(userEndDate); // Calcular días restantes
-      const diffTime = Math.max(endDate.getTime() - today.getTime(), 0); // Evitar negativos
+      const endDate = new Date(userEndDate);
+      const diffTime = Math.max(endDate.getTime() - today.getTime(), 0); 
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       itineraryInfo = `
@@ -62,7 +59,7 @@ exports.getAIRecommendation = async (req, res) => {
       )}, se va el ${endDate.toLocaleDateString("es-ES")}).
     - La consulta pide un "itinerario" o "plan".
    `;
-    } // 4. GENERAR (Generate): Crear el prompt
+    }
 
     const prompt = `
    Eres "MuchIQ", un asistente de turismo experto y amigable de la app creada por MAGMA CREW en Lambayeque, Perú.

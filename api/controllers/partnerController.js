@@ -21,7 +21,6 @@ exports.getPartners = async (req, res) => {
     const { lat, lng, radius } = req.query;
     let filter = {};
 
-    // Filtro geoespacial (igual que en 'places')
     if (lat && lng && radius) {
       const radiusInMeters = parseFloat(radius) * 1000;
       filter.location = {

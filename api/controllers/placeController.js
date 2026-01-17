@@ -1,13 +1,11 @@
-const Place = require('../models/Place'); // Importa el modelo
-const User = require('../models/User'); // Importa el modelo de Usuario
+const Place = require('../models/Place');
+const User = require('../models/User');
 
 // --- Controlador para CREAR un nuevo lugar (para pruebas/admin) ---
 exports.createPlace = async (req, res) => {
     try {
-        // Obtenemos los datos del body
         const { name, description, category, address, longitude, latitude, tags, photos, rating, numReviews } = req.body;
 
-        // Creamos el objeto GeoJSON para la ubicación
         const location = {
             type: 'Point',
             coordinates: [longitude, latitude] // ¡Importante! [Longitud, Latitud]
@@ -34,25 +32,23 @@ exports.createPlace = async (req, res) => {
     }
 };
 
-// --- Controlador para OBTENER lugares (¡Con filtros geoespaciales!) ---
+// --- Controlador para OBTENER lugares ---
 exports.getPlaces = async (req, res) => {
     try {
-        // --- FILTROS (Query Params) ---
         const { category, tag, lat, lng, radius } = req.query;
 
-        let filter = {}; // Objeto de filtro para MongoDB
+        let filter = {};
 
         if (category) {
             filter.category = category;
         }
 
         if (tag) {
-            filter.tags = { $in: [tag] }; // Busca si el tag está en el array de tags
+            filter.tags = { $in: [tag] };
         }
 
-        // --- FILTRO GEOESPACIAL (¡La Magia de MongoDB!) ---
+        // --- FILTRO GEOESPACIAL ---
         if (lat && lng && radius) {
-            // radius está en KM, lo convertimos a metros
             const radiusInMeters = parseFloat(radius) * 1000;
             const longitude = parseFloat(lng);
             const latitude = parseFloat(lat);
@@ -61,14 +57,12 @@ exports.getPlaces = async (req, res) => {
                 $near: {
                     $geometry: {
                         type: 'Point',
-                        coordinates: [longitude, latitude] // [Longitud, Latitud]
+                        coordinates: [longitude, latitude]
                     },
-                    $maxDistance: radiusInMeters // Distancia máxima en metros
+                    $maxDistance: radiusInMeters
                 }
             };
         }
-
-        // Buscamos en la base de datos con los filtros
         const places = await Place.find(filter);
 
         res.status(200).json(places);
@@ -98,20 +92,16 @@ exports.getPlaceById = async (req, res) => {
 
 
 // --- Controlador para CREAR UNA RESEÑA (y ganar puntos) ---
-// Esta ruta estará PROTEGIDA por el middleware
 exports.createPlaceReview = async (req, res) => {
     try {
         const { rating, comment } = req.body;
         const placeId = req.params.id;
 
-        // 1. Buscar el lugar
         const place = await Place.findById(placeId);
         if (!place) {
             return res.status(404).json({ message: 'Lugar no encontrado' });
         }
 
-        // 2. Verificar que el usuario no haya hecho una reseña antes
-        //    (req.user viene del middleware 'protect')
         const alreadyReviewed = place.reviews.find(
             (r) => r.user.toString() === req.user._id.toString()
         );
@@ -120,7 +110,6 @@ exports.createPlaceReview = async (req, res) => {
             return res.status(400).json({ message: 'Ya has hecho una reseña de este lugar' });
         }
 
-        // 3. Crear la nueva reseña
         const review = {
             name: req.user.username,
             rating: Number(rating),
@@ -128,18 +117,15 @@ exports.createPlaceReview = async (req, res) => {
             user: req.user._id,
         };
 
-        // 4. Añadir la reseña al lugar
         place.reviews.push(review);
         place.numReviews = place.reviews.length;
 
-        // 5. Calcular el nuevo rating promedio
         place.rating =
             place.reviews.reduce((acc, item) => item.rating + acc, 0) /
             place.reviews.length;
 
         await place.save();
 
-        // 6. ¡¡DAR PUNTOS AL USUARIO!!
         const user = await User.findById(req.user._id);
         user.points = (user.points || 0) + 10; // Gana 10 puntos por reseña
         await user.save();

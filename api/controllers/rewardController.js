@@ -1,12 +1,9 @@
 const Reward = require('../models/Reward');
-const User = require('../models/User'); // Necesitamos al Usuario
+const User = require('../models/User');
 
-// --- Controlador para CREAR una recompensa (para admin) ---
 exports.createReward = async (req, res) => {
   try {
     const { name, description, pointsCost, partnerId, stock } = req.body;
-    
-    // (Aquí faltaría verificar que 'partnerId' sea válido, pero por ahora lo omitimos)
     
     const reward = new Reward({
       name,
@@ -44,9 +41,8 @@ exports.getRewards = async (req, res) => {
 exports.redeemReward = async (req, res) => {
   try {
     const rewardId = req.params.id;
-    const userId = req.user._id; // Viene del middleware 'protect'
+    const userId = req.user._id;
 
-    // 1. Buscar la recompensa y el usuario
     const reward = await Reward.findById(rewardId);
     const user = await User.findById(userId);
 
@@ -54,19 +50,16 @@ exports.redeemReward = async (req, res) => {
       return res.status(404).json({ message: 'Recompensa no encontrada' });
     }
 
-    // 2. Verificar si el usuario tiene suficientes puntos
     if (user.points < reward.pointsCost) {
       return res.status(400).json({ message: 'Puntos insuficientes' });
     }
     
-    // 3. Verificar si hay stock (opcional, pero buena práctica)
     if (reward.stock <= 0) {
       return res.status(400).json({ message: 'Recompensa agotada' });
     }
 
-    // 4. ¡Hacer el canje!
-    user.points -= reward.pointsCost; // Restar puntos
-    reward.stock -= 1; // Reducir stock
+    user.points -= reward.pointsCost;
+    reward.stock -= 1; 
 
     await user.save();
     await reward.save();
@@ -74,7 +67,7 @@ exports.redeemReward = async (req, res) => {
     res.status(200).json({
       message: 'Recompensa canjeada con éxito',
       newPoints: user.points,
-      confirmationCode: `C-${Date.now()}-${user._id.toString().slice(-4)}` // Código de canje
+      confirmationCode: `C-${Date.now()}-${user._id.toString().slice(-4)}`
     });
 
   } catch (error) {

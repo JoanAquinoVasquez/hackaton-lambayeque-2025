@@ -6,14 +6,12 @@ exports.createDish = async (req, res) => {
   try {
     const { name, description, imageUrl, tags, recommendedPlaces } = req.body;
     
-    // (Opcional: verificar que los IDs de recommendedPlaces existan)
-    
     const dish = new Dish({
       name,
       description,
       imageUrl,
       tags,
-      recommendedPlaces // Array de IDs de lugares
+      recommendedPlaces
     });
 
     const savedDish = await dish.save();
@@ -39,7 +37,7 @@ exports.getDishes = async (req, res) => {
 exports.getDishById = async (req, res) => {
   try {
     const dish = await Dish.findById(req.params.id)
-                           .populate('recommendedPlaces', 'name address rating'); // ¡Populamos!
+                           .populate('recommendedPlaces', 'name address rating');
 
     if (dish) {
       res.json(dish);
@@ -52,7 +50,7 @@ exports.getDishById = async (req, res) => {
   }
 };
 
-// --- Controlador para DAR LIKE a un plato (¡PROTEGIDO!) ---
+// --- Controlador para DAR LIKE a un plato  ---
 exports.likeDish = async (req, res) => {
   try {
     const dish = await Dish.findById(req.params.id);
@@ -60,8 +58,6 @@ exports.likeDish = async (req, res) => {
       return res.status(404).json({ message: 'Plato no encontrado' });
     }
 
-    // Aquí faltaría lógica para evitar doble like, pero para la hackathon
-    // un simple incremento funciona.
     dish.likes += 1;
     await dish.save();
 
@@ -76,21 +72,18 @@ exports.likeDish = async (req, res) => {
 // Función para crear VARIOS platos (carga masiva)
 exports.createManyDishes = async (req, res) => {
   try {
-    // Aquí, req.body DEBE ser un ARREGLO [...] de platos
     const dishes = req.body;
 
     if (!Array.isArray(dishes) || dishes.length === 0) {
       return res.status(400).json({ message: 'El cuerpo de la petición debe ser un arreglo de platos.' });
     }
 
-    // Mongoose inserta todos los documentos del arreglo
     const savedDishes = await Dish.insertMany(dishes);
     
-    res.status(201).json(savedDishes); // Devuelve el arreglo de platos creados
+    res.status(201).json(savedDishes);
 
   } catch (error) {
     console.error(error);
-    // Si hay un error de validación (ej. un plato no tiene 'name'), Mongoose lo reportará aquí
     res.status(500).json({ message: 'Error en el servidor al crear varios platos', details: error.message });
   }
 };
